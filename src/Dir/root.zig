@@ -34,6 +34,9 @@ pub fn get_directory_size(
     var dir_walker = try dir.walk(allocator);
     defer dir_walker.deinit();
 
+    var seen_nodes : std.AutoHashMap(std.posix.ino_t, void) = .init(allocator);
+    defer seen_nodes.deinit();
+
     var running_total : u64 = 0;
 
     while (dir_walker.next(io)) |nullable_entry| {
@@ -41,6 +44,10 @@ pub fn get_directory_size(
         switch (entry.kind) {
             .file => {
                 const stat = try std.Io.Dir.statFile(entry.dir, io, entry.basename, .{ .follow_symlinks = false });
+
+                const gop = try seen_nodes.getOrPut(stat.inode);
+                if (gop.found_existing) { continue; }
+
                 running_total += stat.size;
             },
             else => continue,
