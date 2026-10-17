@@ -31,7 +31,7 @@ pub fn get_directory_size(
         }
     };
 
-    const dir_walker = try dir.walk(allocator);
+    var dir_walker = try dir.walk(allocator);
     defer dir_walker.deinit();
 
     var running_total : u64 = 0;
