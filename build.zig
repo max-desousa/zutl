@@ -4,8 +4,14 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const mod_zutl = b.addModule("zutl", .{
-        .root_source_file = b.path("src/root.zig"),
+    const mod_zutl = b.addModule("zutl_all", .{
+        .root_source_file = b.path("src/root_all.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    _ = b.addModule("zutl_dir", .{
+        .root_source_file = b.path("src/Dir/root_dir.zig"),
         .target = target,
         .optimize = optimize,
     });
