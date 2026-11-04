@@ -22,7 +22,7 @@ pub fn main() !void {
         io,
         allocator,
         ".",
-        .SmallestToLargest,
+        .LargestToSmallest,
     );
     defer zutl.Dir.destroy_file_info_array_list(allocator, &temp);
 

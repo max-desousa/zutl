@@ -3,6 +3,7 @@
 const std = @import("std");
 
 const FileInfo = @import("Dir/FileInfo.zig");
+const sorting = @import("Dir/FileSortingFunctions.zig");
 
 
 //==============================================================================
@@ -10,7 +11,7 @@ const FileInfo = @import("Dir/FileInfo.zig");
 //==============================================================================
 
 
-const SortDirection = enum {
+const SizeBasedSortType = enum {
     SmallestToLargest,
     LargestToSmallest,
 };
@@ -146,7 +147,7 @@ pub fn get_files_by_size(
     path : []const u8,
     /// Used to indicate if 0th index will be the smallest or the largest file.
     /// (No further sorting is done in the event of matching sizes.
-    direction : SortDirection,
+    direction : SizeBasedSortType,
 ) !std.ArrayList(FileInfo) {
     var file_list : std.ArrayList(FileInfo) = .empty;
 
@@ -173,6 +174,14 @@ pub fn get_files_by_size(
         return err;
     }
 
-    _ = direction;
+    switch (direction) {
+        .SmallestToLargest => {
+            std.mem.sort(FileInfo, file_list.items, {}, sorting.smallest_files_first);
+        },
+        .LargestToSmallest => {
+            std.mem.sort(FileInfo, file_list.items, {}, sorting.largest_files_first);
+        },
+    }
+
     return file_list;
 }
