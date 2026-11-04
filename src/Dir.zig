@@ -1,8 +1,18 @@
+//! `Dir` is resposible for functions related to file system functions.
+//! I.e. getting a directory size, listing files based on size, etc. 
 const std = @import("std");
 
+/// This function is a useful calculator for getting the size of a directory.
+/// Directory sizes report a constant 4096 and not the actual size. That
+/// requires a recursive tally of the contents. That's what this function does. 
 pub fn get_directory_size(
+    /// Standard Io - but current implementation is single threaded and can take
+    /// a while (i.e. no groups have been made to speed this up.
     io : std.Io,
+    /// Allocator for dir walking - but there is nothing to free. This is all
+    /// done internally
     allocator : std.mem.Allocator,
+    /// Path can be relative or absolute
     path : []const u8,
 ) !u64 {
     const is_path_abs = std.fs.path.isAbsolute(path);
@@ -56,4 +66,16 @@ pub fn get_directory_size(
     else |_| {}
 
     return running_total;
+}
+
+
+
+/// This function will take a directory and return an arraylist of
+/// files recursively found under the supplied path and returning them in an 
+/// order supplied by the request. (Largest files first or smallest files first)
+/// This function is intended to be a useful utliity in cleaning up a diretory
+/// to provide space to the user. Ex: delete the smallest files until dir is
+/// within memory range
+pub fn get_files_by_size(
+) !void {
 }
