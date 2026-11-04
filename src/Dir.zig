@@ -2,6 +2,8 @@
 //! I.e. getting a directory size, listing files based on size, etc. 
 const std = @import("std");
 
+const FileInfo = @import("Dir/FileInfo.zig");
+
 /// This function is a useful calculator for getting the size of a directory.
 /// Directory sizes report a constant 4096 and not the actual size. That
 /// requires a recursive tally of the contents. That's what this function does. 
@@ -77,5 +79,6 @@ pub fn get_directory_size(
 /// to provide space to the user. Ex: delete the smallest files until dir is
 /// within memory range
 pub fn get_files_by_size(
-) !void {
+) !std.ArrayList(FileInfo) {
+    return error.NotYetImplemented;
 }
