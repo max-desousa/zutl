@@ -17,6 +17,20 @@ const SizeBasedSortType = enum {
 };
 
 
+const AlphaBasedSortType = enum {
+    Alphabetical,
+    ReverseAlphabetical,
+};
+
+
+const GenericFileSortType = enum {
+    SmallestToLargest,
+    LargestToSmallest,
+    Alphabetical,
+    ReverseAlphabetical,
+};
+
+
 //==============================================================================
 //================================ End Enums ===================================
 //==============================================================================
@@ -179,9 +193,113 @@ pub fn get_files_by_size(
             std.mem.sort(FileInfo, file_list.items, {}, sorting.smallest_files_first);
         },
         .LargestToSmallest => {
-            std.mem.sort(FileInfo, file_list.items, {}, sorting.largest_files_first);
+         std.mem.sort(FileInfo, file_list.items, {}, sorting.largest_files_first);
         },
     }
 
     return file_list;
+}
+
+
+pub fn get_dir_size_and_contents(
+    /// Standard IO instance for allowing opening of folders. Current
+    /// implementation only written to support single threaded implementation
+    /// (no io/thread groups for potential performance optimization yet)
+    io : std.Io,
+    /// There will be recursive walking and catalogging of file sizes. The
+    /// allocator is a facilitator of this and is required due to the stdlib
+    allocator : std.mem.Allocator,
+    /// Dir object to iterate against.
+    dir : *std.Io.Dir,
+    /// The mechanism for selecting the crieria for what files will be deleted.
+    /// For this function sorting is optional. Allowing the user to apply another
+    /// sort or to make sure that there only array list is already sorted.
+    nullable_sort_type : ?GenericFileSortType,
+    /// This is a attribute to return by reference the size of the queried
+    /// directory
+    ret_size : *u64,
+    /// This is an attribute to return by reference the file list so users can
+    /// work with the internals without needing an addional scan of the directory
+    ret_file_list : *std.ArrayList(FileInfo),
+) !void {
+    var walker = try dir.walk(allocator);
+    defer walker.deinit();
+
+    var total_dir_size : u64 = 0;
+    defer ret_size.* = total_dir_size;
+
+    while (walker.next(io)) |nullable_entry| {
+        const entry = nullable_entry orelse break;
+        if (.file != entry.kind) continue;
+        const stat = try entry.stat(dir, io, entry.path, .{});
+        const size = stat.size;
+        total_dir_size += size;
+        const allocated_name = try allocator.dupe(u8, entry.path);
+        try ret_file_list.append(
+            allocator,
+            .{
+                .name = allocated_name,
+                .size = size,
+            },);
+    }
+    else |err| {
+        return err;
+    }
+
+    if (nullable_sort_type) |sort_type| {
+        switch (sort_type) {
+            .SmallestToLargest => {
+                std.mem.sort(FileInfo, ret_file_list.items, {}, sorting.smallest_files_first);
+            },
+            .LargestToSmallest => {
+                std.mem.sort(FileInfo, ret_file_list.items, {}, sorting.largest_files_first);
+            },
+            else => unreachable,
+        }
+    }
+}
+
+
+/// This is a function that is intended to simplify the cleanup of a folder. I
+/// have had use cases where I don't want a folder to exceed size X. In the
+/// event that it does, I want files to be deleted. This function will handle
+/// the deletion until the size of the folder fits in the size of the provided
+/// threshold. The user can submit - via an enum - the methodology for the
+/// files to be deleted. 
+pub fn remove_files_until_dir_within_threshold(
+    /// Standard IO instance for allowing opening of folders. Current
+    /// implementation only written to support single threaded implementation
+    /// (no io/thread groups for potential performance optimization yet)
+    io : std.Io,
+    /// There will be recursive walking and catalogging of file sizes. The
+    /// allocator is a facilitator of this and is required due to the stdlib
+    allocator : std.mem.Allocator,
+    /// Path to the folder that needs to be withing the threshold.
+    path : []const u8,
+    /// Threshold that the folder needs to be within.
+    threshold : u64,
+    /// The mechanism for selecting the crieria for what files will be deleted.
+    sort_type : GenericFileSortType,
+) !void {
+    const dir = try open_path_agnostic_dir(io, path);
+    defer dir.close();
+
+    var file_list : std.ArrayList(FileInfo) = .empty;
+    defer destroy_file_info_array_list(allocator, &file_list);
+
+    var dir_size : u64 = 0;
+
+    try get_dir_size_and_contents(
+        io,
+        allocator,
+        &dir,
+        sort_type,
+        &dir_size,
+        &file_list,);
+
+    var index_to_address : usize = 0;
+    while (dir_size > threshold) : (index_to_address += 1) {
+        try std.Io.Dir.deleteFile(dir, io, file_list.items[index_to_address].name);
+        dir_size -= file_list.items[index_to_address].size;
+    }
 }
