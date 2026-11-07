@@ -15,19 +15,16 @@ pub fn main() !void {
     const io = threaded.io();
 
     //try get_directory_contents_and_size(io, allocator, &DisplayList);
-    const size = try zutl.Dir.get_directory_size(io, allocator, ".");
+    const size = try zutl.Dir.get_directory_size(io, allocator, "./.zig-cache");
     std.log.debug("Size of cwd is: {d} bytes", .{ size });
 
-    var temp = try zutl.Dir.get_files_by_size(
+    try zutl.Dir.remove_files_until_dir_within_threshold(
         io,
         allocator,
-        ".",
-        .LargestToSmallest,
-    );
-    defer zutl.Dir.destroy_file_info_array_list(allocator, &temp);
+        "./.zig-cache",
+        1_000_000,
+        .LargestToSmallest);
 
-    std.debug.print("List of files is:\n", .{});
-    for (temp.items) |item| {
-        std.debug.print("\tFile: {s}\n", .{ item.name });
-    }
+    const sizeTwo = try zutl.Dir.get_directory_size(io, allocator, "./.zig-cache");
+    std.log.debug("Size of cwd is: {d} bytes", .{ sizeTwo });
 }

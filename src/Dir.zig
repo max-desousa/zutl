@@ -231,7 +231,7 @@ pub fn get_dir_size_and_contents(
     while (walker.next(io)) |nullable_entry| {
         const entry = nullable_entry orelse break;
         if (.file != entry.kind) continue;
-        const stat = try entry.stat(dir, io, entry.path, .{});
+        const stat = try std.Io.Dir.statFile(dir.*, io, entry.path, .{});
         const size = stat.size;
         total_dir_size += size;
         const allocated_name = try allocator.dupe(u8, entry.path);
@@ -281,8 +281,8 @@ pub fn remove_files_until_dir_within_threshold(
     /// The mechanism for selecting the crieria for what files will be deleted.
     sort_type : GenericFileSortType,
 ) !void {
-    const dir = try open_path_agnostic_dir(io, path);
-    defer dir.close();
+    var dir = try open_path_agnostic_dir(io, path);
+    defer dir.close(io);
 
     var file_list : std.ArrayList(FileInfo) = .empty;
     defer destroy_file_info_array_list(allocator, &file_list);
