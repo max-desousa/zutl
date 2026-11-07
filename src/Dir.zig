@@ -254,7 +254,12 @@ pub fn get_dir_size_and_contents(
             .LargestToSmallest => {
                 std.mem.sort(FileInfo, ret_file_list.items, {}, sorting.largest_files_first);
             },
-            else => unreachable,
+            .Alphabetical => {
+                std.mem.sort(FileInfo, ret_file_list.items, {}, sorting.alphabetical);
+            },
+            .ReverseAlphabetical => {
+                std.mem.sort(FileInfo, ret_file_list.items, {}, sorting.reverse_alphabetical);
+            },
         }
     }
 }
