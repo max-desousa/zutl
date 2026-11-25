@@ -58,7 +58,7 @@ pub fn get_directory_size(
     defer dir.close(io);
 
     var dir_walker = try dir.walk(allocator);
-    defer dir_walker.deinit();
+    defer dir_walker.deinit(io);
 
     var seen_nodes : std.AutoHashMap(std.posix.ino_t, void) = .init(allocator);
     defer seen_nodes.deinit();
@@ -223,7 +223,7 @@ pub fn get_dir_size_and_contents(
     ret_file_list : *std.ArrayList(FileInfo),
 ) !void {
     var walker = try dir.walk(allocator);
-    defer walker.deinit();
+    defer walker.deinit(io);
 
     var total_dir_size : u64 = 0;
     defer ret_size.* = total_dir_size;
